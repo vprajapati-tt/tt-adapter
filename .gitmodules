@@ -1,4 +1,0 @@
-[submodule "third_party/tt-mlir"]
-	path = third_party/tt-mlir
-	url = git@github.com:nsmithtt/tt-mlir.git
-	branch = vprajapati/tt-adapter
