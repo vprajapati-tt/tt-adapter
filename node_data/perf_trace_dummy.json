@@ -1,0 +1,6 @@
+{"ttir-graph": 
+    {"results":
+        {"%arg0": {"value": 0}, "%arg1": {"value": 1}, "tensor.empty0": {"value": 0.33}, "tensor.empty1": {"value": 0.67}},
+        "gradient": [{"stop": 0, "bgColor": "green"}, {"stop": 0.33, "bgColor": "yellow"}, {"stop": 0.67, "bgColor": "orange"}, {"stop": 1, "bgColor": "red"}]
+    }
+}

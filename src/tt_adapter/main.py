@@ -21,50 +21,48 @@ class TTAdapter(Adapter):
 
   def convert(self, model_path: str, settings: Dict) -> ModelExplorerGraphs:
     f = open(model_path, 'r')
+    
     name_dict = defaultdict(int)
     connections = defaultdict(int)
     value_dict = {}
 
     graph = graph_builder.Graph(id='ttir-graph')
 
+    def recurse(operation, graph, nsprefix, global_arg_count):
 
-    with ir.Context() as ctx:
-        ttkernel.register_dialect(ctx)
-        ttir.register_dialect(ctx)
-        tt.register_dialect(ctx)
-
-        module = ir.Module.parse(''.join(f.readlines()), ctx)
-        
-        for op in module.body.operations:
-            # High level functions, need to list their arguments in the graph
-            name_num = name_dict[get_name(op.name)]
-            id = get_name(op.name) + str(name_num)
-            graph.nodes.append(graph_builder.GraphNode(id=id, label=get_name(op.name)))
-            graph.nodes[-1].attrs.extend(get_attrs(op))
-            for arg in op.arguments:
+        if hasattr(operation, "arguments"):
+            for arg in operation.arguments:
+                graph.nodes.append(graph_builder.GraphNode(id="%arg" + str(arg.arg_number), label="%arg" + str(arg.arg_number), namespace=nsprefix))
                 value_dict[arg.get_name()] = graph.nodes[-1]
-            
-            for region in op.regions:
-                for block in region.blocks:
-                    for op in block.operations:
-                        # Just list out the nodes and assign their ids
-                        name_num = name_dict[get_name(op.name)]
-                        id = get_name(op.name) + str(name_num)
+                global_arg_count += 1
+        else:
+            for opers in operation.operands:
+                value_dict["%arg" + str(global_arg_count)] = value_dict[opers.get_name()]
+                global_arg_count += 1
+
+        for region in operation.regions:
+            for block in region.blocks:
+                op_count = 0
+                for op in block.operations:
+
+                    ns = get_name(operation.name) if nsprefix == "" else nsprefix + "/" + get_name(operation.name)
+                    if len(op.regions) == 0:
+                        nid = get_name(op.name) + str(name_dict[get_name(op.name)])
                         name_dict[get_name(op.name)] += 1
-                        graph.nodes.append(graph_builder.GraphNode(id=id, label=get_name(op.name)))
+                        graph.nodes.append(graph_builder.GraphNode(id=nid, label=get_name(op.name), namespace=ns))
                         graph.nodes[-1].attrs.extend(get_attrs(op))
+
+                        # TODO: In here, you have to propogate the result of the second to last operation in the block to the result of the last because it is a yield
+                        # and has no result
+
+                        i = 0
                         for result in op.results:
-                            # Attach the graph node here
                             value_dict[result.get_name()] = graph.nodes[-1]
-                        
+                            if i < len(operation.results):
+                                value_dict[operation.results[i].get_name()] = graph.nodes[-1]
+                            i += 1
+
                         for ops in op.operands:
-                            # Guaranteed topological ordering, so we can start to connect previous values to their respective operations
-                            source_node: graph_builder.GraphNode = value_dict[ops.get_name()]
-                            graph.nodes[-1].incomingEdges.append(graph_builder.IncomingEdge(
-                               sourceNodeId=source_node.id,
-                               sourceNodeOutputId=str(connections[source_node.id]),
-                               targetNodeInputId=str(len(graph.nodes[-1].incomingEdges))
-                            ))
 
                             if hasattr(ops.type, 'encoding') and ops.type.encoding is None:
                                 source_node_attrs = [
@@ -84,7 +82,7 @@ class TTAdapter(Adapter):
                                     graph_builder.KeyValue(key='Memory Space', value=layout.memory_space.name),
                                     graph_builder.KeyValue(key='Grid Shape', value=array_ref_repr(layout.grid_attr.shape))
                                 ]
-
+                            
                             source_node.outputsMetadata.append(
                                 graph_builder.MetadataItem(
                                 id=str(connections[source_node.id]),
@@ -93,7 +91,31 @@ class TTAdapter(Adapter):
                             )
 
                             source_node.attrs.extend(source_node_attrs)
-                            
-                            connections[source_node.id] += 1
+
+                            if value_dict.get(ops.get_name()):
+                                source_node = value_dict[ops.get_name()]
+                                graph.nodes[-1].incomingEdges.append(graph_builder.IncomingEdge(
+                                    sourceNodeId=source_node.id,
+                                    sourceNodeOutputId=str(connections[source_node.id]),
+                                    targetNodeInputId=str(len(graph.nodes[-1].incomingEdges))
+                                ))
+
+                                connections[source_node.id] += 1
+                            else:
+                                print("NO SOURCE NODE")
+                                print(ops.get_name())
+                    else:
+                        recurse(op, graph, ns, global_arg_count)
+                    op_count += 1
+
+        return graph
+
+    with ir.Context() as ctx:
+        ttkernel.register_dialect(ctx)
+        ttir.register_dialect(ctx)
+        # tt.register_dialect(ctx)
+
+        module = ir.Module.parse(''.join(f.readlines()), ctx)
+        graph = recurse(module.body.operations[0], graph, "", 0)
 
     return {'graphs': [graph]}
