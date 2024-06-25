@@ -1,0 +1,6 @@
+{"ttir-graph": 
+    {"results":
+        {"forward0": {"value": 0.7070645799705338}, "tosa.floor0": {"value": 0.7395931903831598}, "tosa.floor1": {"value": 0.6190370531521197}, "tosa.reciprocal0": {"value": 0.61273978442317}, "tensor.empty0": {"value": 0.3516860119244548}, "ttir.multiply0": {"value": 0.3575184466636473}, "tosa.ceil0": {"value": 0.19270363247036504}, "func.return0": {"value": 0.6462402941665313}},
+        "gradient": [{"stop": 0, "bgColor": "green"}, {"stop": 0.33, "bgColor": "yellow"}, {"stop": 0.67, "bgColor": "orange"}, {"stop": 1, "bgColor": "red"}]
+    }
+}

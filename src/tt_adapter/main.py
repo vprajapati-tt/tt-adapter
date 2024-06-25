@@ -39,6 +39,7 @@ class TTAdapter(Adapter):
             # High level functions, need to list their arguments in the graph
             name_num = name_dict[get_name(op.name)]
             id = get_name(op.name) + str(name_num)
+            namespace = get_name(op.name)
             graph.nodes.append(graph_builder.GraphNode(id=id, label=get_name(op.name)))
             graph.nodes[-1].attrs.extend(get_attrs(op))
             for arg in op.arguments:
@@ -51,7 +52,7 @@ class TTAdapter(Adapter):
                         name_num = name_dict[get_name(op.name)]
                         id = get_name(op.name) + str(name_num)
                         name_dict[get_name(op.name)] += 1
-                        graph.nodes.append(graph_builder.GraphNode(id=id, label=get_name(op.name)))
+                        graph.nodes.append(graph_builder.GraphNode(id=id, label=get_name(op.name), namespace=namespace))
                         graph.nodes[-1].attrs.extend(get_attrs(op))
                         for result in op.results:
                             # Attach the graph node here
