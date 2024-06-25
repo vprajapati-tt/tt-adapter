@@ -10,4 +10,3 @@ module attributes {torch.debug_module_name = "Model", tt.system_desc = #tt.syste
     return %5 : tensor<256x256xf32>
   }
 }
-
