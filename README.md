@@ -21,3 +21,12 @@ Loading extensions...
 ```
 
 in the command output to verify that it has been run.
+
+## Testing
+To test the performance trace (with dummy information) and visualization features, activate the ttmlir `venv` and run:
+
+```sh
+model-explorer test/floor_ceil_div.ttir --node_data_paths=node_data/perf_trace_dummy.json --extensions=tt_adapter
+```
+
+It will start a flask server and provide the link to visualize the model. For more information on the Model Explorer UI, refer to the [Wiki](https://github.com/google-ai-edge/model-explorer/wiki/2.-User-Guide)
