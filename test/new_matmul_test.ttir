@@ -1,7 +1,0 @@
-module attributes {torch.debug_module_name = "_lambda", tt.system_desc = #tt.system_desc<[<#tt.arch<wormhole_b0>, #tt.grid<8x8>>], [0], [<pcie|host_mmio>], [<0, 0, 0, 0>]>} {
-  func.func @forward(%arg0: tensor<1x128x64xf32>, %arg1: tensor<1x64x128xf32>) -> tensor<1x128x128xf32> {
-    %0 = tosa.matmul %arg0, %arg1 : (tensor<1x128x64xf32>, tensor<1x64x128xf32>) -> tensor<1x128x128xf32>
-    return %0 : tensor<1x128x128xf32>
-  }
-}
-

@@ -63,7 +63,6 @@ class TTAdapter(Adapter):
                             i += 1
 
                         for ops in op.operands:
-
                             if value_dict.get(ops.get_name()):
                                 source_node = value_dict[ops.get_name()]
                                 graph.nodes[-1].incomingEdges.append(graph_builder.IncomingEdge(
@@ -71,6 +70,35 @@ class TTAdapter(Adapter):
                                     sourceNodeOutputId=str(connections[source_node.id]),
                                     targetNodeInputId=str(len(graph.nodes[-1].incomingEdges))
                                 ))
+
+                                if hasattr(ops.type, 'encoding') and ops.type.encoding is None:
+                                    source_node_attrs = [
+                                        graph_builder.KeyValue(key='shape', value=str(ops.type.shape)),
+                                        graph_builder.KeyValue(key='element_type', value=str(ops.type.element_type)),
+                                        graph_builder.KeyValue(key='rank', value=str(ops.type.rank)),
+                                    ]
+                                else:
+
+                                    layout = tt.ir.LayoutAttr.getLayout(ops.type)
+
+                                    source_node_attrs = [
+                                        graph_builder.KeyValue(key='shape', value=str(ops.type.shape)),
+                                        graph_builder.KeyValue(key='element_type', value=str(ops.type.element_type)),
+                                        graph_builder.KeyValue(key='rank', value=str(ops.type.rank)),
+                                        graph_builder.KeyValue(key='strides', value=array_ref_repr(layout.strides)),
+                                        graph_builder.KeyValue(key='Out of Bounds Value', value=layout.oobval.name),
+                                        graph_builder.KeyValue(key='Memory Space', value=layout.memory_space.name),
+                                        graph_builder.KeyValue(key='Grid Shape', value=array_ref_repr(layout.grid_attr.shape))
+                                    ]
+
+                                source_node.outputsMetadata.append(
+                                    graph_builder.MetadataItem(
+                                    id=str(connections[source_node.id]),
+                                    # attrs=[graph_builder.KeyValue(key='__tensor_tag', value=id)] + source_node_attrs
+                                    )
+                                )
+
+                                source_node.attrs.extend(source_node_attrs)
 
                                 connections[source_node.id] += 1
                             else:
