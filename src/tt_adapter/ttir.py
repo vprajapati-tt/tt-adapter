@@ -3,6 +3,7 @@
 from model_explorer import graph_builder
 from ttmlir.dialects import tt, ttir, ttkernel
 from .utils import *
+from collections import defaultdict
 
 
 def ttir_to_graph(module, ctx):

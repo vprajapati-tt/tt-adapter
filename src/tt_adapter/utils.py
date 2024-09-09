@@ -1,7 +1,6 @@
-from ttmlir import ir
-from ttmlir.dialects import ttkernel, tt, ttir
 from model_explorer import graph_builder
-from collections import defaultdict
+from dataclasses import make_dataclass
+import pathlib
 
 
 def get_attrs(op):
@@ -20,3 +19,16 @@ def get_name(name):
         return name
     else:
         return name.value
+
+
+def to_adapter_format(obj: dict):
+    temp_dc = make_dataclass("tempClass", ((k, type(v)) for k, v in obj.items()))(**obj)
+    return {"graphs": [temp_dc]}
+
+
+def is_valid_path(path: str):
+    try:
+        path = pathlib.Path(path)
+        return True
+    except:
+        return False
