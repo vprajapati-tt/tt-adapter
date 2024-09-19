@@ -14,9 +14,10 @@ def ttir_to_graph(module, ctx):
 
     for op in module.body.operations:
         # High level functions, need to list their arguments in the graph
-        name_num = name_dict[get_name(op.name)]
-        id = get_name(op.name) + str(name_num)
-        namespace = get_name(op.name)
+        name = get_loc_str(op.location)
+        name_num = name_dict[name]
+        id = name + "!!" + str(name_num)
+        namespace = name
         graph.nodes.append(graph_builder.GraphNode(id=id, label=get_name(op.name)))
         graph.nodes[-1].attrs.extend(get_attrs(op))
         for arg in op.arguments:
@@ -26,9 +27,10 @@ def ttir_to_graph(module, ctx):
             for block in region.blocks:
                 for op in block.operations:
                     # Just list out the nodes and assign their ids
-                    name_num = name_dict[get_name(op.name)]
-                    id = get_name(op.name) + str(name_num)
-                    name_dict[get_name(op.name)] += 1
+                    name = get_loc_str(op.location)
+                    name_num = name_dict[name]
+                    id = name + "!!" + str(name_num)
+                    name_dict[name] += 1
                     graph.nodes.append(
                         graph_builder.GraphNode(
                             id=id, label=get_name(op.name), namespace=namespace
@@ -81,21 +83,27 @@ def ttir_to_graph(module, ctx):
                                 graph_builder.KeyValue(
                                     key="rank", value=str(ops.type.rank)
                                 ),
-                                graph_builder.KeyValue(
-                                    key="strides",
-                                    value=array_ref_repr(layout.strides),
-                                ),
-                                graph_builder.KeyValue(
-                                    key="Out of Bounds Value",
-                                    value=layout.oobval.name,
-                                ),
-                                graph_builder.KeyValue(
-                                    key="Memory Space",
-                                    value=layout.memory_space.name,
-                                ),
-                                graph_builder.KeyValue(
-                                    key="Grid Shape",
-                                    value=array_ref_repr(layout.grid_attr.shape),
+                                # graph_builder.KeyValue(
+                                #    key="strides",
+                                #    value=array_ref_repr(layout.stride),
+                                # ),
+                                # graph_builder.KeyValue(
+                                #    key="Out of Bounds Value",
+                                #    value=layout.oobval.name,
+                                # ),
+                                # graph_builder.KeyValue(
+                                #    key="Memory Space",
+                                #    value=layout.memory_space.name,
+                                # ),
+                                make_editable_kv(
+                                    graph_builder.KeyValue(
+                                        key="Grid Shape",
+                                        value=array_ref_repr(layout.grid_attr.shape),
+                                    ),
+                                    editable={
+                                        "input_type": "value_list",
+                                        "options": ["1x1", "4x4", "8x8"],
+                                    },
                                 ),
                             ]
 

@@ -43,15 +43,6 @@ class TTAdapter(Adapter):
         )
 
     def execute(self, model_path: str, settings: Dict):
-
-        # Initialize settings and TTRT API
-        API.initialize_apis()
-        ttrt_args = API.Perf.registered_args
-
-        if "ttrt_args" in settings and isinstance(settings["ttrt_args"], dict):
-            for k, v in settings["ttrt_args"].items():
-                ttrt_args[k] = v
-
         # Initialize the SystemDesc for the PipelineOption
         if "TT_SYSTEM_DESC_PATH" in os.environ:
             ttir_to_ttnn_options = (
@@ -68,9 +59,9 @@ class TTAdapter(Adapter):
             tt.register_dialect(ctx)
             module = ir.Module.parse("".join(f.readlines()), ctx)
             # Transform the module into TTNN, apply options if any
-            passes.passes.ttir_to_ttnn_backend_pipeline(module, ttir_to_ttnn_options)
+            passes.ttir_to_ttnn_backend_pipeline(module, ttir_to_ttnn_options)
             with tempfile.NamedTemporaryFile(mode="w", suffix=".ttnn") as temp_module:
-                passes.passes.ttnn_to_flatbuffer_file(module, temp_module.name)
+                passes.ttnn_to_flatbuffer_file(module, temp_module.name)
                 with tempfile.TemporaryDirectory() as _artifact_dir:
                     artifact_dir = _artifact_dir
                     # Create a subprocess to invoke ttrt perf
@@ -103,6 +94,25 @@ class TTAdapter(Adapter):
 
         return to_adapter_format(result)
 
+    def override(self, model_path: str, settings: Dict):
+        f = open(model_path, "r")
+        with ir.Context() as ctx:
+            ttir.register_dialect(ctx)
+            tt.register_dialect(ctx)
+            module = ir.Module.parse(f.read(), ctx)
+
+        # Apply overrides, save them to module
+        result = overrides_process_settings(settings, module)
+
+        if result["success"]:
+            with open(model_path, "w") as f:
+                f.write(str(module))
+
+            graph = ttir_to_graph(module, ctx)
+            result["graphs"] = [graph]
+        print(result)
+        return to_adapter_format(result)
+
     def convert(self, model_path: str, settings: Dict) -> ModelExplorerGraphs:
         f = open(model_path, "r")
         with ir.Context() as ctx:
@@ -110,9 +120,13 @@ class TTAdapter(Adapter):
             ttir.register_dialect(ctx)
             tt.register_dialect(ctx)
             module = ir.Module.parse("".join(f.readlines()), ctx)
+            self.initialize("")  # Initialize to load the System Desc for the first pass
+            passes.ttnn_pipeline_ttir_passes(
+                module
+            )  # Run first pass to put into format for overrides
 
         # Apply overrides, save new module and send new model_path back.
-        overrides_process_me_settings(settings)
+        overrides_process_convert_settings(settings, module)
 
         # Convert TTIR to Model Explorer Graphs and Display/Return
         graph = ttir_to_graph(module, ctx)
