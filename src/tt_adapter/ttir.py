@@ -6,7 +6,25 @@ from .utils import *
 from collections import defaultdict
 
 
+def get_enum_options(enum_type):
+    return [str(e) for e in enum_type]
+
+
+def get_ops(module):
+    ops = []
+
+    for op in module.body.operations:
+        ops.append(op)
+        for region in op.regions:
+            for block in region.blocks:
+                for op in block.operations:
+                    ops.append(op)
+
+    return ops
+
+
 def ttir_to_graph(module, ctx):
+    # Can assume that to-layout pass has already been run on the module.
     name_dict = defaultdict(int)
     connections = defaultdict(int)
     value_dict = {}
@@ -91,10 +109,28 @@ def ttir_to_graph(module, ctx):
                                 #    key="Out of Bounds Value",
                                 #    value=layout.oobval.name,
                                 # ),
-                                # graph_builder.KeyValue(
-                                #    key="Memory Space",
-                                #    value=layout.memory_space.name,
-                                # ),
+                                make_editable_kv(
+                                    graph_builder.KeyValue(
+                                        key="Memory Space",
+                                        value=layout.memory_space_as_str,
+                                    ),
+                                    editable={
+                                        "input_type": "value_list",
+                                        "options": get_enum_options(tt.MemorySpace),
+                                    },
+                                ),
+                                make_editable_kv(
+                                    graph_builder.KeyValue(
+                                        key="Memory Layout",
+                                        value=layout.memory_layout_as_str,
+                                    ),
+                                    editable={
+                                        "input_type": "value_list",
+                                        "options": get_enum_options(
+                                            tt.TensorMemoryLayout
+                                        ),
+                                    },
+                                ),
                                 make_editable_kv(
                                     graph_builder.KeyValue(
                                         key="Grid Shape",

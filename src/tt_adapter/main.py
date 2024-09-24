@@ -105,11 +105,10 @@ class TTAdapter(Adapter):
         result = overrides_process_settings(settings, module)
 
         if result["success"]:
-            with open(model_path, "w") as f:
-                f.write(str(module))
+            save_overriden_module(module, model_path)
 
             graph = ttir_to_graph(module, ctx)
-            result["graphs"] = [graph]
+            result["graphCollections"] = {"graphs": [graph], "label": "TTIR Graph"}
         print(result)
         return to_adapter_format(result)
 
@@ -120,13 +119,16 @@ class TTAdapter(Adapter):
             ttir.register_dialect(ctx)
             tt.register_dialect(ctx)
             module = ir.Module.parse("".join(f.readlines()), ctx)
-            self.initialize("")  # Initialize to load the System Desc for the first pass
-            passes.ttnn_pipeline_ttir_passes(
-                module
-            )  # Run first pass to put into format for overrides
+            self.initialize(
+                "", {}
+            )  # Initialize to load the System Desc for the first pass
 
-        # Apply overrides, save new module and send new model_path back.
+        # Supply SystemDesc path from Initialize above and run TTIR Passes
         overrides_process_convert_settings(settings, module)
+        print("made it here")
+
+        save_overriden_module(module, model_path)
+        print("saved to " + model_path)
 
         # Convert TTIR to Model Explorer Graphs and Display/Return
         graph = ttir_to_graph(module, ctx)
