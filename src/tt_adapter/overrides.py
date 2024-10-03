@@ -44,9 +44,9 @@ class LayoutOverride(Override):
                         if k == "Grid Shape":
                             values[k] = "x".join(map(str, layout.grid_attr.shape))
                         elif k == "Memory Space":
-                            values[k] = layout.memory_space_as_str
+                            values[k] = str(tt.MemorySpace(layout.memory_space_as_int))
                         elif k == "Memory Layout":
-                            values[k] = layout.memory_layout_as_str
+                            values[k] = str(tt.TensorMemoryLayout(layout.memory_layout_as_int))
         return f'{loc}={values["Grid Shape"]}:{values["Memory Space"]}:{values["Memory Layout"]}'
 
 

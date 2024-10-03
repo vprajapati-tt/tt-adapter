@@ -44,10 +44,13 @@ class TTAdapter(Adapter):
 
     def execute(self, model_path: str, settings: Dict):
         # Initialize the SystemDesc for the PipelineOption
-        if "TT_SYSTEM_DESC_PATH" in os.environ:
-            ttir_to_ttnn_options = (
-                f'system-desc-path={os.environ["TT_SYSTEM_DESC_PATH"]}'
-            )
+        if "TT_SYSTEM_DESC_PATH" not in os.environ:
+            self.initialize("", {})
+
+        ttir_to_ttnn_options = (
+            f'system-desc-path={os.environ["TT_SYSTEM_DESC_PATH"]}'
+        )
+            
         if "ttir_to_ttnn_options" in settings:
             ttir_to_ttnn_options += "," + ",".join(settings["ttir_to_ttnn_options"])
 
@@ -106,11 +109,10 @@ class TTAdapter(Adapter):
 
         if result["success"]:
             save_overriden_module(module, model_path)
-
             graph = ttir_to_graph(module, ctx)
-            result["graphCollections"] = {"graphs": [graph], "label": "TTIR Graph"}
+            result["graphCollections"] = [to_dataclass({"graphs": [graph], "label": "TTIR Graph"}, "GraphCollection")]
         print(result)
-        return to_adapter_format(result)
+        return {'graphs': [graph]}
 
     def convert(self, model_path: str, settings: Dict) -> ModelExplorerGraphs:
         f = open(model_path, "r")

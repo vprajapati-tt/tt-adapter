@@ -34,10 +34,11 @@ def make_editable_kv(kv, editable):
     obj["editable"] = editable
     return make_dataclass("KeyValue", ((k, type(v)) for k, v in obj.items()))(**obj)
 
+def to_dataclass(obj: dict, dc_name: str = "tempClass"):
+    return make_dataclass(dc_name, ((k, type(v)) for k, v in obj.items()))(**obj)
 
 def to_adapter_format(obj: dict):
-    temp_dc = make_dataclass("tempClass", ((k, type(v)) for k, v in obj.items()))(**obj)
-    return {"graphs": [temp_dc]}
+    return {"graphs": [to_dataclass(obj)]}
 
 
 def is_valid_path(path: str):

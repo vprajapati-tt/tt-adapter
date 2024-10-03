@@ -35,7 +35,7 @@ def ttir_to_graph(module, ctx):
         name = get_loc_str(op.location)
         name_num = name_dict[name]
         id = name + "!!" + str(name_num)
-        namespace = name
+        namespace, prev_name = name, ''
         graph.nodes.append(graph_builder.GraphNode(id=id, label=get_name(op.name)))
         graph.nodes[-1].attrs.extend(get_attrs(op))
         for arg in op.arguments:
@@ -46,6 +46,11 @@ def ttir_to_graph(module, ctx):
                 for op in block.operations:
                     # Just list out the nodes and assign their ids
                     name = get_loc_str(op.location)
+                    if name != prev_name:
+                        if '/' in namespace:
+                            namespace = namespace.split('/')[0]
+                        namespace += "/" + name
+                        prev_name = name
                     name_num = name_dict[name]
                     id = name + "!!" + str(name_num)
                     name_dict[name] += 1
@@ -112,7 +117,7 @@ def ttir_to_graph(module, ctx):
                                 make_editable_kv(
                                     graph_builder.KeyValue(
                                         key="Memory Space",
-                                        value=layout.memory_space_as_str,
+                                        value=str(tt.MemorySpace(layout.memory_space_as_int)),
                                     ),
                                     editable={
                                         "input_type": "value_list",
@@ -122,7 +127,7 @@ def ttir_to_graph(module, ctx):
                                 make_editable_kv(
                                     graph_builder.KeyValue(
                                         key="Memory Layout",
-                                        value=layout.memory_layout_as_str,
+                                        value=str(tt.TensorMemoryLayout(layout.memory_layout_as_int)),
                                     ),
                                     editable={
                                         "input_type": "value_list",
